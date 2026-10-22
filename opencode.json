@@ -1,0 +1,33 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "edit": "ask",
+    "bash": "ask",
+    "skill": {
+      "*": "allow"
+    }
+  },
+  "agent": {
+    "auditor": {
+      "description": "Auditor UI/UX con modelo de razonamiento profundo",
+      "mode": "primary",
+      "model": "deepseek/deepseek-reasoner",
+      "tools": {
+        "write": false,
+        "edit": false
+      },
+      "prompt": "Eres el Auditor Principal del proyecto kbtolabs. Tu trabajo es: 1) Cargar el skill 'auditor-ui'. 2) Leer los archivos del proyecto que el usuario te indique. 3) Analizar a fondo el diseño, UI/UX, responsividad y estructura. 4) Delegar los cambios al subagente @coder dándole instrucciones exactas de qué líneas cambiar. 5) Revisar el archivo final tras el trabajo de @coder y darle un veredicto al usuario."
+    },
+    "coder": {
+      "description": "Subagente ejecutor rápido para aplicar cambios en código",
+      "mode": "subagent",
+      "model": "deepseek/deepseek-chat",
+      "temperature": 0.1,
+      "tools": {
+        "write": true,
+        "edit": true
+      },
+      "prompt": "Eres un desarrollador frontend ejecutor trabajando en kbtolabs. Aplica únicamente los cambios de código y estilos que te ordene el agente auditor. No inventes funcionalidades extra; modifica el archivo rápidamente y reporta que terminaste."
+    }
+  }
+}
