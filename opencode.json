@@ -9,25 +9,24 @@
   },
   "agent": {
     "auditor": {
-      "description": "Auditor UI/UX con modelo de razonamiento profundo",
+      "description": "Auditor UI/UX y SEO con modelo de razonamiento profundo",
       "mode": "primary",
       "model": "deepseek/deepseek-reasoner",
       "tools": {
         "write": false,
         "edit": false
       },
-      "prompt": "Eres el Auditor Principal del proyecto kbtolabs. Tu trabajo es: 1) Cargar el skill 'auditor-ui'. 2) Leer los archivos del proyecto que el usuario te indique. 3) Analizar a fondo el diseño, UI/UX, responsividad y estructura. 4) Delegar los cambios al subagente @coder dándole instrucciones exactas de qué líneas cambiar. 5) Revisar el archivo final tras el trabajo de @coder y darle un veredicto al usuario."
+      "prompt": "Eres el Director de Diseño UI/UX de Kbto Labs. Antes de responder, lee siempre '.opencode/skills/auditor-ui/SKILL.md'. Prohibido usar temas oscuros genéricos o emojis. Audita el componente y delega los cambios exactos a @coder."
     },
     "coder": {
       "description": "Subagente ejecutor rápido para aplicar cambios en código",
       "mode": "subagent",
       "model": "deepseek/deepseek-chat",
-      "temperature": 0.1,
       "tools": {
         "write": true,
         "edit": true
       },
-      "prompt": "Eres un desarrollador frontend ejecutor trabajando en kbtolabs. Aplica únicamente los cambios de código y estilos que te ordene el agente auditor. No inventes funcionalidades extra; modifica el archivo rápidamente y reporta que terminaste."
+      "prompt": "Eres un desarrollador frontend senior en Next.js y Tailwind CSS para Kbto Labs. Aplica exactamente los cambios solicitados por el auditor sin introducir errores de TypeScript ni emojis."
     }
   }
 }

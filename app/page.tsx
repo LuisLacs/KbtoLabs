@@ -2,26 +2,119 @@
 
 import React, { useState } from 'react';
 import {
+  Activity,
   ArrowRight,
-  BarChart3,
+  ArrowUpRight,
+  Box,
   Check,
   ChevronRight,
   Cpu,
   Globe,
-  HelpCircle,
   Layers,
   Menu,
   MessageSquare,
   Monitor,
+  Plus,
+  Printer,
   RefreshCw,
   ShieldCheck,
   Sliders,
   Store,
-  X
+  Thermometer,
+  Trash2,
+  Wifi,
+  X,
+  Zap
 } from 'lucide-react';
 
-export default function KbtoLabsEnterprise() {
+// Componente con Física 3D al Cursor + Luz Radial (Spotlight)
+function TiltSpotlightCard({
+  children,
+  className = '',
+  dark = false
+}: {
+  children: React.ReactNode;
+  className?: string;
+  dark?: boolean;
+}) {
+  const [style, setStyle] = useState({
+    transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)',
+    spotX: 50,
+    spotY: 50,
+    opacity: 0
+  });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const rotateX = ((y - centerY) / centerY) * -4;
+    const rotateY = ((x - centerX) / centerX) * 4;
+
+    setStyle({
+      transform: `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg)`,
+      spotX: (x / rect.width) * 100,
+      spotY: (y / rect.height) * 100,
+      opacity: 1
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setStyle((prev) => ({
+      ...prev,
+      transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)',
+      opacity: 0
+    }));
+  };
+
+  return (
+    <div
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        transform: style.transform,
+        transition: 'transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)'
+      }}
+      className={`relative overflow-hidden ${className}`}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+        style={{
+          opacity: style.opacity,
+          background: dark
+            ? `radial-gradient(380px circle at ${style.spotX}% ${style.spotY}%, rgba(59, 130, 246, 0.22), transparent 75%)`
+            : `radial-gradient(380px circle at ${style.spotX}% ${style.spotY}%, rgba(37, 99, 235, 0.09), transparent 75%)`
+        }}
+      />
+      <div className="relative z-10 h-full">{children}</div>
+    </div>
+  );
+}
+
+export default function KbtoLabsInteractive() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Estado del Laboratorio Interactivo en el Hero (No Lineal)
+  const [activeLabTab, setActiveLabTab] = useState<'pos' | 'iot3d' | 'cloud'>('pos');
+
+  // Estados del Simulador POS en Vivo
+  const [dailySales, setDailySales] = useState(14850);
+  const [ticketCount, setTicketCount] = useState(42);
+  const [cart, setCart] = useState<Array<{ id: string; name: string; price: number; qty: number }>>([
+    { id: '1', name: 'Café Americano Especial', price: 48, qty: 2 },
+    { id: '2', name: 'Orden de Tacos / Platillo', price: 145, qty: 1 }
+  ]);
+  const [ticketPrinted, setTicketPrinted] = useState(false);
+
+  // Estados del Gemelo Digital 3D (Kyros IoT)
+  const [cubeRotation, setCubeRotation] = useState({ x: -18, y: 28 });
+  const [chamberTemp, setChamberTemp] = useState(3.2);
+  const [relayActive, setRelayActive] = useState(true);
+
+  // Estados del Cotizador Paso a Paso
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({
     industry: '',
@@ -31,10 +124,59 @@ export default function KbtoLabsEnterprise() {
   });
   const [billingPeriod, setBillingPeriod] = useState<'mensual' | 'anual'>('mensual');
 
+  // Catálogo rápido para el Simulador POS
+  const sampleProducts = [
+    { id: '1', name: 'Café Americano Especial', price: 48 },
+    { id: '2', name: 'Orden de Tacos / Platillo', price: 145 },
+    { id: '3', name: 'Frappé de Oreo Grande', price: 78 },
+    { id: '4', name: 'Combo Especial Mostrador', price: 210 }
+  ];
+
+  const addProductToSimulator = (prod: { id: string; name: string; price: number }) => {
+    setTicketPrinted(false);
+    setCart((prev) => {
+      const existing = prev.find((item) => item.id === prod.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.id === prod.id ? { ...item, qty: item.qty + 1 } : item
+        );
+      }
+      return [...prev, { ...prod, qty: 1 }];
+    });
+  };
+
+  const clearSimulatorCart = () => {
+    setCart([]);
+    setTicketPrinted(false);
+  };
+
+  const cartTotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+
+  const handleSimulateCharge = () => {
+    if (cart.length === 0) return;
+    setDailySales((prev) => prev + cartTotal);
+    setTicketCount((prev) => prev + 1);
+    setTicketPrinted(true);
+    setTimeout(() => {
+      setCart([{ id: '1', name: 'Café Americano Especial', price: 48, qty: 1 }]);
+    }, 1800);
+  };
+
+  // Manejo del Modelo 3D Isométrico interactivo
+  const handle3DMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const normX = (e.clientX - rect.left) / rect.width - 0.5;
+    const normY = (e.clientY - rect.top) / rect.height - 0.5;
+    setCubeRotation({
+      x: -18 + normY * -35,
+      y: 28 + normX * 45
+    });
+  };
+
   const questions = [
     {
       id: 'industry',
-      stepLabel: 'Paso 01 de 04',
+      stepLabel: 'PASO 01 DE 04',
       title: '¿Qué área de tu negocio deseas digitalizar?',
       subtitle: 'Selecciona el giro principal para calcular la licencia de software adecuada.',
       options: [
@@ -66,7 +208,7 @@ export default function KbtoLabsEnterprise() {
     },
     {
       id: 'scale',
-      stepLabel: 'Paso 02 de 04',
+      stepLabel: 'PASO 02 DE 04',
       title: '¿Cuál es el tamaño actual de tu operación?',
       subtitle: 'Con esto definimos el plan exacto para que solo pagues por lo que utilizas.',
       options: [
@@ -92,7 +234,7 @@ export default function KbtoLabsEnterprise() {
     },
     {
       id: 'hardware',
-      stepLabel: 'Paso 03 de 04',
+      stepLabel: 'PASO 03 DE 04',
       title: '¿Cuentas ya con equipo de cómputo o terminales?',
       subtitle: 'El precio de nuestros planes cubre el software; el equipo físico es opcional.',
       options: [
@@ -124,7 +266,7 @@ export default function KbtoLabsEnterprise() {
     },
     {
       id: 'painPoint',
-      stepLabel: 'Paso 04 de 04',
+      stepLabel: 'PASO 04 DE 04',
       title: '¿Cuál es tu prioridad principal al implementar el sistema?',
       subtitle: 'Configuraremos los módulos iniciales para resolver esto desde el primer día.',
       options: [
@@ -209,7 +351,9 @@ export default function KbtoLabsEnterprise() {
   const pricingPlans = [
     {
       name: 'Base',
-      subtitle: 'POS Inicial',
+      subtitle: 'POS INICIAL',
+      capacityLabel: '1 caja activa',
+      bars: 2,
       monthlyPrice: '299',
       annualPrice: '249',
       unit: '/ mes',
@@ -227,7 +371,9 @@ export default function KbtoLabsEnterprise() {
     },
     {
       name: 'Estándar',
-      subtitle: 'POS Negocio',
+      subtitle: 'POS NEGOCIO',
+      capacityLabel: 'Hasta 3 cajas',
+      bars: 4,
       monthlyPrice: '449',
       annualPrice: '375',
       unit: '/ mes',
@@ -245,7 +391,9 @@ export default function KbtoLabsEnterprise() {
     },
     {
       name: 'Pro',
-      subtitle: 'Control Total + Cloud',
+      subtitle: 'CONTROL TOTAL + CLOUD',
+      capacityLabel: 'Sin límite',
+      bars: 6,
       monthlyPrice: '699',
       annualPrice: '580',
       unit: '/ mes',
@@ -263,7 +411,9 @@ export default function KbtoLabsEnterprise() {
     },
     {
       name: 'A Medida',
-      subtitle: 'Web & Eventos',
+      subtitle: 'WEB & EVENTOS',
+      capacityLabel: 'A medida',
+      bars: 5,
       monthlyPrice: '3,800',
       annualPrice: '3,800',
       unit: 'desde (pago único)',
@@ -282,15 +432,18 @@ export default function KbtoLabsEnterprise() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#F4F7FE] text-slate-900 font-sans selection:bg-blue-600 selection:text-white">
-      {/* BARRA SUPERIOR CORPORATIVA */}
-      <div className="w-full bg-white border-b border-slate-200 px-4 sm:px-8 py-2.5 text-xs text-slate-600">
+    <main className="min-h-screen bg-[#FAF9F6] text-stone-900 font-sans selection:bg-blue-600 selection:text-white pb-24">
+      {/* BARRA SUPERIOR */}
+      <div className="w-full bg-white border-b border-stone-200/80 px-4 sm:px-8 py-2 text-xs text-stone-600">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-          <div className="flex items-center gap-2 font-medium text-slate-800">
-            <span className="w-2 h-2 rounded-full bg-blue-600" />
+          <div className="flex items-center gap-2.5 font-medium text-stone-800">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" />
+            </span>
             <span>Kbto Labs — Ingeniería de Software, Puntos de Venta y Automatización</span>
           </div>
-          <div className="hidden md:flex items-center gap-6 text-slate-500">
+          <div className="hidden md:flex items-center gap-6 text-stone-500">
             <span>Atención en Guasave, Sinaloa y todo México</span>
             <span>|</span>
             <span>Precios transparentes en MXN</span>
@@ -299,447 +452,657 @@ export default function KbtoLabsEnterprise() {
       </div>
 
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-8 py-4 shadow-sm">
+      <nav className="sticky top-0 z-40 bg-[#FAF9F6]/90 backdrop-blur-md border-b border-stone-200/80 px-4 sm:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <a href="#" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-blue-600/20">
+          <a href="#" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-xl bg-stone-950 flex items-center justify-center text-white font-bold text-lg transition-transform duration-200 group-hover:scale-105">
               K
             </div>
             <div className="flex flex-col">
               <div className="leading-none">
-                <span className="text-xl font-black tracking-tight text-slate-900">KBTO</span>
-                <span className="text-xl font-semibold text-blue-600">LABS</span>
+                <span className="text-lg font-bold tracking-tight text-stone-950">KBTO</span>
+                <span className="text-lg font-semibold text-blue-600">LABS</span>
               </div>
-              <span className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold mt-0.5">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-stone-400 font-semibold mt-1">
                 Software & Sistemas
               </span>
             </div>
           </a>
 
-          {/* Enlaces Desktop */}
-          <div className="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-600">
-            <a href="#soluciones" className="hover:text-blue-600 transition-colors">
-              Soluciones
+          <div className="hidden lg:flex items-center gap-7 text-sm font-medium text-stone-600">
+            <a href="#simulador" className="hover:text-stone-950 transition-colors">
+              Simulador en Vivo
             </a>
-            <a href="#precios" className="hover:text-blue-600 transition-colors">
+            <a href="#precios" className="hover:text-stone-950 transition-colors">
               Precios
             </a>
-            <a href="#diagnostico" className="text-blue-600">
-              Diagnóstico Interactivo
+            <a href="#diagnostico" className="hover:text-stone-950 transition-colors">
+              Configurador
             </a>
-            <a href="#proyectos" className="hover:text-blue-600 transition-colors">
-              Casos Reales
-            </a>
-            <a href="#comparativa" className="hover:text-blue-600 transition-colors">
-              Ventajas
+            <a href="#soluciones" className="hover:text-stone-950 transition-colors">
+              Ingeniería
             </a>
           </div>
 
-          {/* Botones CTA Desktop */}
           <div className="hidden sm:flex items-center gap-3">
             <a
-              href="#precios"
-              className="text-slate-700 hover:text-blue-600 font-semibold text-sm px-4 py-2 transition-colors"
+              href="#diagnostico"
+              className="border border-stone-300 bg-white hover:border-stone-900 text-stone-800 font-semibold text-xs px-4 py-2.5 rounded-full transition-colors"
             >
-              Ver Tarifas
+              Diagnóstico Rápido
             </a>
             <a
-              href="#diagnostico"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-5 py-2.5 rounded-full transition-all shadow-md shadow-blue-600/20 flex items-center gap-2"
+              href="#precios"
+              className="bg-stone-950 hover:bg-blue-600 text-white font-semibold text-xs px-5 py-2.5 rounded-full transition-colors flex items-center gap-2"
             >
-              Cotizar Sistema <ArrowRight size={16} />
+              Ver Planes <ArrowRight size={14} />
             </a>
           </div>
 
-          {/* Botón Menú Móvil */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100"
-            aria-label="Abrir menú de navegación"
+            className="lg:hidden h-11 w-11 rounded-xl border border-stone-200 bg-white flex items-center justify-center text-stone-700"
+            aria-label="Abrir menú"
           >
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
-        {/* Menú Móvil Desplegable */}
         {mobileMenuOpen && (
-          <div className="lg:hidden mt-4 pt-4 border-t border-slate-200 flex flex-col gap-2 pb-2">
+          <div className="lg:hidden mt-3 pt-3 border-t border-stone-200 flex flex-col gap-2 pb-2">
             <a
-              href="#soluciones"
+              href="#simulador"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 text-sm font-semibold"
+              className="px-3 py-2.5 rounded-xl bg-white border border-stone-200/80 text-stone-900 text-sm font-semibold"
             >
-              Soluciones para Negocios
+              Probar Simulador Interactivo
             </a>
             <a
               href="#precios"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 text-sm font-semibold"
+              className="px-3 py-2.5 rounded-xl hover:bg-stone-100 text-stone-700 text-sm font-semibold"
             >
-              Tabla de Precios (Software)
+              Precios en MXN
             </a>
             <a
               href="#diagnostico"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-600 text-sm font-bold"
+              className="px-3 py-2.5 rounded-xl hover:bg-stone-100 text-stone-700 text-sm font-semibold"
             >
-              Asistente para elegir tu sistema
+              Diagnóstico de 4 Pasos
             </a>
             <a
-              href="#proyectos"
+              href="#soluciones"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 text-sm font-semibold"
+              className="px-3 py-2.5 rounded-xl hover:bg-stone-100 text-stone-700 text-sm font-semibold"
             >
-              Sistemas Desarrollados
-            </a>
-            <a
-              href="#precios"
-              onClick={() => setMobileMenuOpen(false)}
-              className="mt-2 w-full bg-blue-600 text-white font-semibold text-center py-3 rounded-full text-sm shadow-md shadow-blue-600/20"
-            >
-              Ver Planes y Precios
+              Divisiones de Ingeniería
             </a>
           </div>
         )}
       </nav>
 
-      {/* HERO SECTION LUMINOSO Y CORPORATIVO */}
-      <section className="bg-white border-b border-slate-200 py-12 sm:py-20 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider">
-              <Layers size={14} /> Tecnología Comercial e Industrial
+      {/* HERO NO LINEAL CON SIMULADOR WEB INTEGRADO + GEMELO DIGITAL 3D */}
+      <section
+        id="simulador"
+        className="relative overflow-hidden border-b border-stone-200/80 py-10 sm:py-16 px-4 sm:px-8"
+      >
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, #e7e5e4 1px, transparent 1px), linear-gradient(to bottom, #e7e5e4 1px, transparent 1px)',
+            backgroundSize: '40px 40px'
+          }}
+        />
+
+        <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          <div className="lg:col-span-6 space-y-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-stone-200/90 shadow-sm text-stone-700 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              <Layers size={13} className="text-blue-600" /> Ingeniería Interactiva en Vivo
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.08]">
+            <h1 className="text-[34px] sm:text-5xl lg:text-[56px] font-semibold tracking-[-0.035em] text-stone-950 leading-[1.05]">
               Software claro y rápido para{' '}
               <span className="text-blue-600">controlar todo tu negocio.</span>
             </h1>
 
-            <p className="text-slate-600 text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-              En <strong className="text-slate-900 font-semibold">Kbto Labs</strong> desarrollamos sistemas Punto de Venta (POS), plataformas web y soluciones de monitoreo físico. Automatiza tus cortes de caja, inventarios y operación con precios transparentes.
+            <p className="max-w-[48ch] text-[15px] sm:text-[17px] leading-[1.65] text-stone-600">
+              En <strong className="font-semibold text-stone-950">Kbto Labs</strong> desarrollamos sistemas Punto de Venta (POS), plataformas web y monitoreo físico. <strong className="font-semibold text-stone-950">Interactúa con nuestro simulador a la derecha</strong> para probar un cobro en vivo o rotar nuestro nodo 3D de telemetría.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+            {/* Selector de Experiencia No Lineal */}
+            <div className="pt-1">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400 block mb-2.5">
+                SELECCIONA EL MÓDULO INTERACTIVO:
+              </span>
+              <div className="inline-flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl border border-stone-200/90 shadow-sm">
+                <button
+                  onClick={() => setActiveLabTab('pos')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 ${
+                    activeLabTab === 'pos'
+                      ? 'bg-stone-950 text-white'
+                      : 'text-stone-600 hover:text-stone-950'
+                  }`}
+                >
+                  <Store size={14} /> 1. Simulador POS
+                </button>
+                <button
+                  onClick={() => setActiveLabTab('iot3d')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 ${
+                    activeLabTab === 'iot3d'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-stone-600 hover:text-stone-950'
+                  }`}
+                >
+                  <Box size={14} /> 2. Nodo 3D Kyros IoT
+                </button>
+                <button
+                  onClick={() => setActiveLabTab('cloud')}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 ${
+                    activeLabTab === 'cloud'
+                      ? 'bg-stone-950 text-white'
+                      : 'text-stone-600 hover:text-stone-950'
+                  }`}
+                >
+                  <Activity size={14} /> 3. Sincronización Cloud
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
               <a
                 href="#precios"
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-full text-sm sm:text-base transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2"
+                className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-stone-950 hover:bg-blue-600 text-white font-semibold px-7 text-sm transition-colors shadow-sm active:scale-[0.985]"
               >
-                Ver Planes desde $299/mes <ArrowRight size={18} />
+                Ver Planes desde $299/mes <ArrowRight size={16} />
               </a>
               <a
                 href="#diagnostico"
-                className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-semibold px-8 py-4 rounded-full text-sm sm:text-base transition-all text-center"
+                className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-white hover:border-blue-600 text-stone-900 border border-stone-300 font-semibold px-6 text-sm transition-colors"
               >
                 Hacer Diagnóstico Rápido
               </a>
             </div>
-
-            <div className="pt-6 grid grid-cols-3 gap-4 max-w-lg mx-auto lg:mx-0 text-left border-t border-slate-200">
-              <div>
-                <div className="text-slate-900 font-black text-lg sm:text-xl">Sin Plazos</div>
-                <div className="text-xs text-slate-500">Planes mensuales claros sin contratos forzosos</div>
-              </div>
-              <div>
-                <div className="text-slate-900 font-black text-lg sm:text-xl">Multi-Equipo</div>
-                <div className="text-xs text-slate-500">Usa tu propia PC, tablet o teléfono móvil</div>
-              </div>
-              <div>
-                <div className="text-slate-900 font-black text-lg sm:text-xl">Soporte Local</div>
-                <div className="text-xs text-slate-500">Atención directa de ingeniería sin intermediarios</div>
-              </div>
-            </div>
           </div>
 
-          {/* Panel Visual Derecho: Resumen de Ecosistema en Tema Claro */}
-          <div className="lg:col-span-5">
-            <div className="bg-[#F8FAFC] border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/60">
-              <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-200">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-blue-600 block">
-                    Ecosistema Kbto Labs
+          {/* Columna Derecha: SIMULADOR INTERACTIVO EN VIVO + MODELO 3D */}
+          <div className="lg:col-span-6">
+            <div className="rounded-2xl bg-white border border-stone-200/90 shadow-[0_20px_50px_-15px_rgba(12,15,20,0.12)] overflow-hidden">
+              <div className="bg-stone-950 text-white px-4 py-3 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                  <span className="ml-2 font-mono text-[11px] text-stone-300">
+                    {activeLabTab === 'pos' && 'SIMULADOR INTERACTIVO — DESTELLOS POS v2.6'}
+                    {activeLabTab === 'iot3d' && 'VISOR 3D ISOMÉTRICO — NODO KYROS ESP32'}
+                    {activeLabTab === 'cloud' && 'ARQUITECTURA CLOUD — MULTISUCURSAL'}
                   </span>
-                  <h2 className="text-lg font-extrabold text-slate-900">Tres divisiones especializadas</h2>
                 </div>
-                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-                  Disponible
+                <span className="text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full">
+                  En Vivo
                 </span>
               </div>
 
-              <div className="space-y-4">
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-start gap-4 shadow-sm hover:border-blue-400 transition-colors">
-                  <div className="p-3 rounded-xl bg-blue-50 text-blue-600 shrink-0">
-                    <Store size={22} />
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-bold text-slate-900 text-sm sm:text-base">Punto de Venta (POS)</h3>
-                      <span className="text-xs font-bold text-blue-600">Desde $299/mes</span>
+              {/* MODO 1: SIMULADOR POS FUNCIONAL */}
+              {activeLabTab === 'pos' && (
+                <div className="p-4 sm:p-6 space-y-4 bg-[#FAF9F6]">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white rounded-xl p-3.5 border border-stone-200/80">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                        VENTAS ACUMULADAS HOY
+                      </span>
+                      <div className="text-2xl sm:text-3xl font-bold text-stone-950 mt-0.5">
+                        ${dailySales.toLocaleString('es-MX')}
+                        <span className="text-xs font-normal text-stone-400">.00 MXN</span>
+                      </div>
+                      <span className="text-[11px] text-emerald-700 font-medium">
+                        {ticketCount} tickets cobrados en turno
+                      </span>
                     </div>
-                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      Cobro rápido, cortes de caja, control de inventario, cálculo de propinas y emisión de tickets.
-                    </p>
+
+                    <div className="bg-white rounded-xl p-3.5 border border-stone-200/80 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                          IMPRESORA TÉRMICA
+                        </span>
+                        <Printer size={15} className="text-blue-600" />
+                      </div>
+                      <div className="text-xs font-semibold text-stone-800">
+                        {ticketPrinted
+                          ? 'Imprimiendo Ticket #00' + ticketCount + '...'
+                          : 'Lista para cobrar en 1 clic'}
+                      </div>
+                      <span className="text-[11px] text-blue-600 font-medium">
+                        Toca los productos abajo para probar
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 block mb-2">
+                      TOCA UN PRODUCTO PARA AGREGAR AL TICKET:
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {sampleProducts.map((prod) => (
+                        <button
+                          key={prod.id}
+                          onClick={() => addProductToSimulator(prod)}
+                          className="flex items-center justify-between bg-white hover:bg-blue-50/60 border border-stone-200 hover:border-blue-600 rounded-xl px-3 py-2.5 text-left transition-colors active:scale-[0.98]"
+                        >
+                          <div className="pr-2">
+                            <div className="text-xs font-semibold text-stone-900 line-clamp-1">
+                              {prod.name}
+                            </div>
+                            <div className="text-[11px] font-bold text-blue-600">
+                              ${prod.price}.00
+                            </div>
+                          </div>
+                          <div className="h-7 w-7 rounded-lg bg-stone-100 flex items-center justify-center text-stone-700 shrink-0">
+                            <Plus size={14} />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl border border-stone-200/90 p-4">
+                    <div className="flex items-center justify-between pb-2 mb-2 border-b border-dashed border-stone-200">
+                      <span className="text-xs font-bold text-stone-900">
+                        Cuenta Actual ({cart.reduce((a, b) => a + b.qty, 0)} artículos)
+                      </span>
+                      <button
+                        onClick={clearSimulatorCart}
+                        className="text-[11px] text-stone-400 hover:text-rose-600 flex items-center gap-1"
+                      >
+                        <Trash2 size={12} /> Limpiar
+                      </button>
+                    </div>
+
+                    {cart.length === 0 ? (
+                      <p className="text-xs text-stone-400 py-3 text-center">
+                        Selecciona cualquier producto arriba para simular una venta.
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-28 overflow-y-auto text-xs">
+                        {cart.map((item) => (
+                          <div key={item.id} className="flex justify-between text-stone-700">
+                            <span>
+                              <strong className="text-stone-950">{item.qty}x</strong> {item.name}
+                            </span>
+                            <span className="font-semibold text-stone-950">
+                              ${item.price * item.qty}.00
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-3 pt-3 border-t border-stone-200 flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-[10px] uppercase tracking-wider text-stone-400 block">
+                          TOTAL A COBRAR
+                        </span>
+                        <span className="text-lg font-bold text-stone-950">
+                          ${cartTotal}.00 MXN
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={handleSimulateCharge}
+                        disabled={cart.length === 0}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 text-white font-semibold text-xs px-5 py-3 rounded-xl transition-colors active:scale-95 flex items-center gap-2"
+                      >
+                        <Zap size={14} /> Cobrar y Sumar al Corte
+                      </button>
+                    </div>
                   </div>
                 </div>
+              )}
 
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-start gap-4 shadow-sm hover:border-blue-400 transition-colors">
-                  <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600 shrink-0">
-                    <Globe size={22} />
+              {/* MODO 2: GEMELO DIGITAL 3D ISOMÉTRICO (KYROS IoT) */}
+              {activeLabTab === 'iot3d' && (
+                <div className="p-4 sm:p-6 bg-[#0B0F17] text-white space-y-4">
+                  <div className="flex items-center justify-between text-xs text-stone-400">
+                    <span>Mueve el cursor sobre el módulo 3D para rotar la placa</span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                        chamberTemp > 6
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      }`}
+                    >
+                      {chamberTemp > 6 ? 'ALERTA TÉRMICA ACTIVA' : 'TELEMETRÍA ÓPTIMA'}
+                    </span>
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-bold text-slate-900 text-sm sm:text-base">Plataformas Web a Medida</h3>
-                      <span className="text-xs font-bold text-indigo-600">Pago por Proyecto</span>
+
+                  <div
+                    onMouseMove={handle3DMouseMove}
+                    onMouseLeave={() => setCubeRotation({ x: -18, y: 28 })}
+                    className="relative h-56 rounded-xl bg-gradient-to-b from-slate-900 to-stone-950 border border-slate-800 flex items-center justify-center overflow-hidden cursor-grab"
+                    style={{ perspective: '900px' }}
+                  >
+                    <div
+                      style={{
+                        transform: `rotateX(${cubeRotation.x}deg) rotateY(${cubeRotation.y}deg)`,
+                        transformStyle: 'preserve-3d',
+                        transition: 'transform 120ms ease-out'
+                      }}
+                      className="relative w-52 h-36 rounded-2xl bg-slate-900 border-2 border-blue-500/60 shadow-[0_25px_60px_rgba(37,99,235,0.35)] p-4 flex flex-col justify-between"
+                    >
+                      <div
+                        style={{ transform: 'translateZ(26px)' }}
+                        className="flex items-center justify-between bg-stone-950/90 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[10px]"
+                      >
+                        <span className="font-mono text-blue-400 font-bold">ESP32-C6 // KYROS</span>
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            relayActive ? 'bg-emerald-400 animate-ping' : 'bg-stone-600'
+                          }`}
+                        />
+                      </div>
+
+                      <div
+                        style={{ transform: 'translateZ(42px)' }}
+                        className="my-auto text-center bg-blue-600/15 border border-blue-400/30 rounded-xl py-2"
+                      >
+                        <div className="text-[10px] uppercase tracking-widest text-blue-300">
+                          Cámara Fría #01
+                        </div>
+                        <div className="text-2xl font-bold text-white">
+                          {chamberTemp.toFixed(1)} °C
+                        </div>
+                      </div>
+
+                      <div
+                        style={{ transform: 'translateZ(18px)' }}
+                        className="flex justify-between text-[10px] font-mono text-stone-400"
+                      >
+                        <span>RELÉ: {relayActive ? 'ON' : 'OFF'}</span>
+                        <span>WIFI: -42dBm</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      Sistemas administrativos propios, portales interactivos para eventos y catálogos en línea.
-                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+                      <div className="flex justify-between text-xs mb-2">
+                        <span className="text-stone-400 flex items-center gap-1">
+                          <Thermometer size={14} className="text-blue-400" /> Simular Temperatura:
+                        </span>
+                        <span className="font-bold text-white">{chamberTemp.toFixed(1)} °C</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-5"
+                        max="15"
+                        step="0.5"
+                        value={chamberTemp}
+                        onChange={(e) => setChamberTemp(parseFloat(e.target.value))}
+                        className="w-full accent-blue-500 cursor-pointer"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => setRelayActive(!relayActive)}
+                      className={`rounded-xl p-3 border text-xs font-semibold flex items-center justify-between transition-colors ${
+                        relayActive
+                          ? 'bg-blue-600/20 border-blue-500 text-white'
+                          : 'bg-slate-900 border-slate-800 text-stone-400'
+                      }`}
+                    >
+                      <span>Compresor / Actuador Físico</span>
+                      <span className="px-2.5 py-1 rounded-lg bg-black/40 font-mono">
+                        {relayActive ? 'ACTIVO' : 'APAGADO'}
+                      </span>
+                    </button>
                   </div>
                 </div>
+              )}
 
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-start gap-4 shadow-sm hover:border-blue-400 transition-colors">
-                  <div className="p-3 rounded-xl bg-slate-100 text-slate-800 shrink-0">
-                    <Cpu size={22} />
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-bold text-slate-900 text-sm sm:text-base">Monitoreo y Sensores IoT</h3>
-                      <span className="text-xs font-bold text-slate-700">Software + Hardware</span>
+              {/* MODO 3: ARQUITECTURA CLOUD MULTISUCURSAL */}
+              {activeLabTab === 'cloud' && (
+                <div className="p-5 sm:p-6 bg-[#FAF9F6] space-y-4">
+                  <div className="bg-white border border-stone-200 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-stone-900 flex items-center gap-2">
+                        <Wifi size={15} className="text-blue-600" /> Sincronización en Tiempo Real (&lt;50ms)
+                      </span>
+                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                        Supabase Realtime Activo
+                      </span>
                     </div>
-                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      Telemetría en vivo para cuartos fríos, consumo eléctrico y automatización de equipos físicos.
+                    <p className="text-xs text-stone-600 leading-relaxed">
+                      Cada venta registrada en el mostrador o cada lectura de un sensor Kyros se replica al instante en tu teléfono móvil sin necesidad de servidores locales costosos.
                     </p>
+                    <div className="grid grid-cols-3 gap-2 pt-2 text-center">
+                      <div className="p-3 rounded-xl bg-stone-50 border border-stone-200/80">
+                        <div className="text-sm font-bold text-stone-950">Sucursal 01</div>
+                        <div className="text-[11px] text-emerald-600 font-medium">Sincronizado</div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
+                        <div className="text-sm font-bold text-blue-700">Nube Central</div>
+                        <div className="text-[11px] text-blue-600 font-medium">Respaldo 24/7</div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-stone-50 border border-stone-200/80">
+                        <div className="text-sm font-bold text-stone-950">Tu Celular</div>
+                        <div className="text-[11px] text-emerald-600 font-medium">En Vivo</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-                <span>¿Buscas orientación personalizada?</span>
-                <a
-                  href="#diagnostico"
-                  className="text-blue-600 font-bold hover:underline flex items-center gap-1"
-                >
-                  Responder 4 preguntas <ChevronRight size={14} />
-                </a>
-              </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* SECCIÓN DE PRECIOS REALES (DISEÑO INSPIRADO EN LAS TARJETAS DE REFERENCIA) */}
+      {/* SECCIÓN DE PRECIOS CON EFECTO 3D TILT AL CURSOR */}
       <section id="precios" className="scroll-mt-20 py-16 sm:py-24 px-4 sm:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <span className="text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-3.5 py-1 rounded-full">
-            Precios Claros y Competitivos
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-4">
-            Elige el plan ideal para tu negocio
-          </h2>
-          <p className="text-slate-600 text-sm sm:text-base mt-3">
-            Precios expresados en Pesos Mexicanos (MXN) correspondientes a la licencia de software. Puedes utilizar tus propios dispositivos actuales sin obligación de comprar equipo.
-          </p>
-
-          {/* Selector Mensual / Anual */}
-          <div className="mt-8 inline-flex items-center bg-white border border-slate-200 p-1.5 rounded-full shadow-sm">
-            <button
-              onClick={() => setBillingPeriod('mensual')}
-              className={`px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${
-                billingPeriod === 'mensual'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Pago Mensual
-            </button>
-            <button
-              onClick={() => setBillingPeriod('anual')}
-              className={`px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition-all ${
-                billingPeriod === 'anual'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Pago Anual (Ahorra 16%)
-            </button>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end mb-12">
+          <div className="lg:col-span-7">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 block mb-2">
+              PRECIOS CLAROS Y COMPETITIVOS
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-stone-950">
+              Elige el plan ideal para tu negocio
+            </h2>
+          </div>
+          <div className="lg:col-span-5 text-xs sm:text-sm text-stone-600 space-y-2">
+            <p>
+              Precios en Pesos Mexicanos (MXN) por licencia de software. Puedes usar tus propios dispositivos actuales sin obligación de comprar equipo.
+            </p>
           </div>
         </div>
 
-        {/* Grid de 4 Tarjetas al estilo de la referencia visual */}
+        <div className="mb-10 inline-flex bg-white border border-stone-200/90 p-1 rounded-full shadow-sm">
+          <button
+            onClick={() => setBillingPeriod('mensual')}
+            className={`px-5 py-2 rounded-full text-xs font-semibold transition-colors ${
+              billingPeriod === 'mensual'
+                ? 'bg-stone-950 text-white'
+                : 'text-stone-600 hover:text-stone-950'
+            }`}
+          >
+            Pago Mensual
+          </button>
+          <button
+            onClick={() => setBillingPeriod('anual')}
+            className={`px-5 py-2 rounded-full text-xs font-semibold transition-colors ${
+              billingPeriod === 'anual'
+                ? 'bg-stone-950 text-white'
+                : 'text-stone-600 hover:text-stone-950'
+            }`}
+          >
+            Pago Anual (Ahorra 16%)
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
           {pricingPlans.map((plan, index) => {
             const displayedPrice =
               billingPeriod === 'mensual' ? plan.monthlyPrice : plan.annualPrice;
 
             return (
-              <div
+              <TiltSpotlightCard
                 key={index}
-                className={`rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all relative ${
+                dark={plan.featured}
+                className={`rounded-2xl p-6 sm:p-7 flex flex-col justify-between ${
                   plan.featured
-                    ? 'bg-gradient-to-b from-blue-600 to-indigo-700 text-white shadow-2xl shadow-blue-600/30 lg:-translate-y-3'
-                    : 'bg-white text-slate-900 border border-slate-200/90 shadow-xl shadow-slate-200/50'
+                    ? 'bg-[#0B0F14] text-white ring-1 ring-white/15 shadow-[0_24px_48px_-12px_rgba(11,15,20,0.45)]'
+                    : 'bg-white text-stone-900 border border-stone-200/90 shadow-sm'
                 }`}
               >
-                {plan.featured && (
-                  <div className=" -top-3.5 left-1/2 -translate-x-1/2 absolute bg-slate-900 text-white text-[11px] font-bold uppercase tracking-wider px-4 py-1 rounded-full shadow-md whitespace-nowrap">
-                    Más Popular
-                  </div>
-                )}
+                <div className="flex flex-col h-full justify-between">
+                  <div>
+                    <div className="pb-4 mb-4 border-b border-current/10">
+                      <div className="flex items-center justify-between text-[10px] uppercase tracking-wider opacity-70 mb-2">
+                        <span>CAPACIDAD</span>
+                        <span className="font-semibold">{plan.capacityLabel}</span>
+                      </div>
+                      <div className="grid grid-cols-6 gap-1.5 items-end h-6">
+                        {[1, 2, 3, 4, 5, 6].map((bar) => (
+                          <div
+                            key={bar}
+                            style={{ height: `${Math.min(100, bar * 16 + 15)}%` }}
+                            className={`rounded-sm transition-colors ${
+                              bar <= plan.bars
+                                ? plan.featured
+                                  ? 'bg-white'
+                                  : 'bg-stone-900'
+                                : plan.featured
+                                ? 'bg-white/15'
+                                : 'bg-stone-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
 
-                <div>
-                  <div className="text-center pb-6 border-b border-current/10">
-                    <h3
-                      className={`text-lg font-extrabold ${
-                        plan.featured ? 'text-white' : 'text-slate-900'
-                      }`}
-                    >
-                      {plan.name}
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold">{plan.name}</h3>
+                      {plan.featured && (
+                        <span className="bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full">
+                          Más Popular
+                        </span>
+                      )}
+                    </div>
                     <span
-                      className={`text-xs font-semibold block mt-0.5 ${
-                        plan.featured ? 'text-blue-100' : 'text-blue-600'
+                      className={`text-[10px] font-bold uppercase tracking-wider block mt-0.5 ${
+                        plan.featured ? 'text-blue-400' : 'text-blue-600'
                       }`}
                     >
                       {plan.subtitle}
                     </span>
 
-                    <div className="mt-6 flex items-baseline justify-center gap-1">
-                      <span className="text-sm font-bold">$</span>
-                      <span className="text-4xl font-black tracking-tight">{displayedPrice}</span>
-                      <span
-                        className={`text-xs font-semibold ${
-                          plan.featured ? 'text-blue-100' : 'text-slate-500'
-                        }`}
-                      >
-                        MXN
-                      </span>
-                    </div>
-                    <span
-                      className={`text-[11px] block mt-1 ${
-                        plan.featured ? 'text-blue-100' : 'text-slate-400'
-                      }`}
-                    >
-                      {plan.unit}
-                    </span>
-
                     <p
-                      className={`text-xs mt-4 leading-relaxed ${
-                        plan.featured ? 'text-blue-100' : 'text-slate-500'
+                      className={`text-xs mt-3 leading-relaxed ${
+                        plan.featured ? 'text-stone-300' : 'text-stone-500'
                       }`}
                     >
                       {plan.description}
                     </p>
+
+                    <div
+                      className={`mt-5 p-4 rounded-xl border ${
+                        plan.featured
+                          ? 'bg-white/5 border-white/10'
+                          : 'bg-[#FAF9F6] border-stone-200/80'
+                      }`}
+                    >
+                      <span className="text-[10px] uppercase tracking-wider opacity-60 block">
+                        PRECIO DEL PLAN
+                      </span>
+                      <div className="flex items-baseline gap-1 mt-1">
+                        <span className="text-xs font-bold">$</span>
+                        <span className="text-3xl font-bold tracking-tight">
+                          {displayedPrice}
+                        </span>
+                        <span className="text-xs opacity-70">MXN</span>
+                      </div>
+                      <span className="text-[11px] opacity-60 block mt-0.5">{plan.unit}</span>
+                    </div>
+
+                    <ul className="space-y-3 my-6 text-xs">
+                      {plan.features.map((feat, fIdx) => (
+                        <li key={fIdx} className="flex items-start gap-2.5">
+                          <Check
+                            size={14}
+                            className={`mt-0.5 shrink-0 ${
+                              plan.featured ? 'text-blue-400' : 'text-blue-600'
+                            }`}
+                          />
+                          <span className={plan.featured ? 'text-stone-200' : 'text-stone-600'}>
+                            {feat}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
-                  <ul className="space-y-3.5 my-6 text-xs sm:text-sm">
-                    {plan.features.map((feat, fIdx) => (
-                      <li key={fIdx} className="flex items-start gap-2.5">
-                        <div
-                          className={`p-0.5 rounded-full mt-0.5 shrink-0 ${
-                            plan.featured
-                              ? 'bg-white/20 text-white'
-                              : 'bg-blue-50 text-blue-600'
-                          }`}
-                        >
-                          <Check size={14} />
-                        </div>
-                        <span className={plan.featured ? 'text-white' : 'text-slate-600'}>
-                          {feat}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  <a
+                    href={`https://wa.me/5216870000000?text=${encodeURIComponent(
+                      `Hola Kbto Labs, me interesa contratar el plan ${plan.name} (${plan.subtitle}) de $${displayedPrice} MXN.`
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`w-full py-3 px-5 rounded-full font-semibold text-xs text-center transition-colors block ${
+                      plan.featured
+                        ? 'bg-white text-stone-950 hover:bg-blue-50'
+                        : 'bg-stone-950 text-white hover:bg-blue-600'
+                    }`}
+                  >
+                    {plan.ctaText}
+                  </a>
                 </div>
-
-                <a
-                  href={`https://wa.me/5216878761208?text=${encodeURIComponent(
-                    `Hola Kbto Labs, me interesa contratar el plan ${plan.name} (${plan.subtitle}) de$ ${displayedPrice} MXN.`
-                  )}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`w-full py-3.5 px-6 rounded-full font-bold text-xs sm:text-sm text-center transition-all shadow-md ${
-                    plan.featured
-                      ? 'bg-white text-blue-700 hover:bg-blue-50'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/15'
-                  }`}
-                >
-                  {plan.ctaText}
-                </a>
-              </div>
+              </TiltSpotlightCard>
             );
           })}
         </div>
-
-        {/* Nota Aclaratoria sobre Equipos Físicos */}
-        <div className="mt-10 bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-start gap-3.5">
-            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 shrink-0 mt-0.5">
-              <HelpCircle size={20} />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-slate-900">
-                ¿Necesitas impresoras de tickets, cajones de dinero, terminales o sensores físicos?
-              </h4>
-              <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                Los precios anteriores corresponden únicamente al software para que no pagues de más si ya tienes computadora o tablet. Si requieres equipamiento físico o sensores IoT, los cotizamos a la medida de tu local.
-              </p>
-            </div>
-          </div>
-          <a
-            href="#diagnostico"
-            className="shrink-0 text-xs font-bold text-blue-600 hover:text-blue-800 border border-blue-200 bg-blue-50 px-4 py-2.5 rounded-full transition-colors"
-          >
-            Calcular con Equipo
-          </a>
-        </div>
       </section>
 
-      {/* DIAGNÓSTICO INTERACTIVO EN TEMA CLARO (OPTIMIZADO PARA MÓVIL) */}
+      {/* CONFIGURADOR DE 4 PASOS */}
       <section
         id="diagnostico"
-        className="scroll-mt-20 py-16 sm:py-20 px-4 sm:px-8 bg-white border-y border-slate-200"
+        className="scroll-mt-20 py-16 px-4 sm:px-8 bg-white border-y border-stone-200/80"
       >
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 px-3.5 py-1 rounded-full text-xs font-bold uppercase">
-              <Sliders size={14} /> Configurador Inteligente
+          <div className="mb-8">
+            <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-[11px] font-bold uppercase">
+              <Sliders size={13} /> Configurador Inteligente
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 mt-3">
+            <h2 className="text-2xl sm:text-4xl font-semibold text-stone-950 mt-2">
               Descubre qué plan se adapta a tu operación
             </h2>
-            <p className="text-slate-600 text-sm sm:text-base mt-2">
-              Responde 4 preguntas rápidas para obtener una recomendación con precio estimado de software.
-            </p>
           </div>
 
-          <div className="bg-[#F8FAFC] border border-slate-200 rounded-3xl p-5 sm:p-10 shadow-lg shadow-slate-200/50">
-            {/* Cabecera del Cuestionario */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-200">
-              <div className="flex items-center justify-between sm:justify-start gap-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-100 px-3 py-1.5 rounded-lg">
-                  {step < 4 ? questions[step].stepLabel : 'Diagnóstico Completado'}
+          <div className="bg-[#FAF9F6] border border-stone-200/90 rounded-2xl p-5 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-6 border-b border-stone-200">
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white bg-stone-950 px-3 py-1 rounded-md">
+                  {step < 4 ? questions[step].stepLabel : 'DIAGNÓSTICO COMPLETADO'}
                 </span>
                 {step > 0 && step < 4 && (
                   <button
                     onClick={() => setStep(step - 1)}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-900 underline"
+                    className="text-xs font-semibold text-stone-500 hover:text-stone-950 underline"
                   >
-                    Regresar al paso anterior
+                    Paso anterior
                   </button>
                 )}
               </div>
 
-              {/* Barra de Progreso */}
-              <div className="grid grid-cols-4 gap-2 w-full sm:w-64">
+              <div className="grid grid-cols-4 gap-2 w-full sm:w-56">
                 {[0, 1, 2, 3].map((idx) => (
                   <div
                     key={idx}
-                    className={`h-2 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-colors ${
                       step > idx
                         ? 'bg-blue-600'
                         : step === idx
                         ? 'bg-blue-400'
-                        : 'bg-slate-200'
+                        : 'bg-stone-200'
                     }`}
                   />
                 ))}
@@ -748,94 +1111,89 @@ export default function KbtoLabsEnterprise() {
 
             {step < questions.length ? (
               <div>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1">
+                <h3 className="text-lg sm:text-xl font-bold text-stone-950 mb-1">
                   {questions[step].title}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-500 mb-6">{questions[step].subtitle}</p>
+                <p className="text-xs text-stone-500 mb-5">{questions[step].subtitle}</p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {questions[step].options.map((opt, i) => (
                     <button
                       key={i}
                       onClick={() => handleSelectOption(questions[step].id, opt.value)}
-                      className="text-left bg-white hover:bg-blue-50/50 border border-slate-200 hover:border-blue-600 rounded-2xl p-5 transition-all group shadow-sm flex flex-col justify-between"
+                      className="text-left bg-white hover:border-blue-600 border border-stone-200/90 rounded-xl p-4 transition-colors group flex flex-col justify-between"
                     >
                       <div>
-                        <div className="flex items-center justify-between gap-2 mb-2.5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-stone-100 text-stone-700 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                             {opt.tag}
                           </span>
                           <ChevronRight
-                            size={18}
-                            className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-transform shrink-0"
+                            size={16}
+                            className="text-stone-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-transform"
                           />
                         </div>
-                        <div className="font-bold text-slate-900 text-sm sm:text-base mb-1">
-                          {opt.label}
-                        </div>
-                        <p className="text-xs text-slate-500 leading-relaxed">{opt.desc}</p>
+                        <div className="font-bold text-stone-950 text-sm mb-1">{opt.label}</div>
+                        <p className="text-xs text-stone-500 leading-relaxed">{opt.desc}</p>
                       </div>
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              /* Resultado del Diagnóstico */
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 px-3.5 py-1 rounded-full text-xs font-bold">
-                    <ShieldCheck size={16} /> {recommendation.badge}
+                  <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-bold">
+                    <ShieldCheck size={15} /> {recommendation.badge}
                   </span>
-                  <div className="bg-white border border-blue-200 px-4 py-1.5 rounded-full">
-                    <span className="text-xs text-slate-500 mr-1.5">Tarifa de Software:</span>
-                    <span className="text-sm font-black text-blue-600">{recommendation.price}</span>
+                  <div className="bg-white border border-stone-200 px-4 py-1.5 rounded-full">
+                    <span className="text-xs text-stone-500 mr-1.5">Tarifa de Software:</span>
+                    <span className="text-sm font-bold text-blue-600">{recommendation.price}</span>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
-                    {recommendation.name}
-                  </h3>
-                  <p className="text-sm sm:text-base text-slate-600 mt-2 leading-relaxed">
+                  <h3 className="text-2xl font-bold text-stone-950">{recommendation.name}</h3>
+                  <p className="text-sm text-stone-600 mt-1.5 leading-relaxed">
                     {recommendation.desc}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="bg-white border border-stone-200 rounded-xl p-4">
                     <span className="text-xs font-bold uppercase text-blue-600 block mb-1">
                       Consideración sobre Equipo Físico
                     </span>
-                    <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                    <p className="text-xs text-stone-600 leading-relaxed">
                       {recommendation.hwNote}
                     </p>
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                  <div className="bg-white border border-stone-200 rounded-xl p-4">
                     <span className="text-xs font-bold uppercase text-emerald-700 block mb-1">
                       Beneficio Operativo Directo
                     </span>
-                    <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                    <p className="text-xs text-stone-600 leading-relaxed">
                       {recommendation.benefit}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                   <a
-                    href={`https://wa.me/5216878761208?text=${encodeURIComponent(
+                    href={`https://wa.me/5216870000000?text=${encodeURIComponent(
                       `Hola Kbto Labs, realicé el diagnóstico en su web. Mi resultado fue: ${recommendation.name} (${recommendation.price}). Giro: ${answers.industry}, Escala: ${answers.scale}, Equipo: ${answers.hardware}.`
                     )}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-full text-sm text-center flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-6 rounded-full text-xs sm:text-sm text-center flex items-center justify-center gap-2"
                   >
-                    <MessageSquare size={18} /> Solicitar Demostración por WhatsApp
+                    <MessageSquare size={16} /> Solicitar Demostración por WhatsApp
                   </a>
                   <button
                     onClick={resetWizard}
-                    className="py-4 px-6 rounded-full border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+                    className="py-3.5 px-5 rounded-full border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold flex items-center justify-center gap-2"
                   >
-                    <RefreshCw size={15} /> Reiniciar
+                    <RefreshCw size={14} /> Reiniciar
                   </button>
                 </div>
               </div>
@@ -844,310 +1202,175 @@ export default function KbtoLabsEnterprise() {
         </div>
       </section>
 
-      {/* SECCIÓN DETALLADA DE SOLUCIONES */}
-      <section id="soluciones" className="scroll-mt-20 py-16 sm:py-20 px-4 sm:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <span className="text-xs font-bold uppercase tracking-widest text-blue-600">
-            Divisiones de Ingeniería
+      {/* SOLUCIONES ASIMÉTRICAS CON MICROINTERACCIONES */}
+      <section id="soluciones" className="scroll-mt-20 py-16 px-4 sm:px-8 max-w-7xl mx-auto">
+        <div className="mb-10">
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 block mb-2">
+            DIVISIONES DE INGENIERÍA
           </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-2">
+          <h2 className="text-3xl sm:text-4xl font-semibold text-stone-950">
             Qué incluye cada solución de Kbto Labs
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-6">
-                <Monitor size={24} />
-              </div>
-              <h3 className="text-xl font-black text-slate-900 mb-3">
-                Sistemas Punto de Venta (POS)
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                Diseñado para que cualquier cajero o encargado cobre en segundos sin errores matemáticos al cerrar el turno.
-              </p>
-              <ul className="space-y-3 text-sm text-slate-700 border-t border-slate-100 pt-5 mb-6">
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-blue-600 shrink-0" />
-                  <span>Cortes de caja y arqueo de efectivo</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-blue-600 shrink-0" />
-                  <span>Pagos en efectivo, tarjeta y transferencia</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-blue-600 shrink-0" />
-                  <span>Reparto automatizado de propinas por horas</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-blue-600 shrink-0" />
-                  <span>Impresión de tickets térmicos de venta</span>
-                </li>
-              </ul>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <TiltSpotlightCard className="lg:col-span-7 bg-white border border-stone-200/90 rounded-2xl p-6 sm:p-8 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-5">
+              <Monitor size={20} />
             </div>
-            <a
-              href="#precios"
-              className="text-blue-600 font-bold text-sm hover:underline flex items-center gap-1"
-            >
-              Ver planes POS desde $299/mes <ArrowRight size={15} />
-            </a>
-          </div>
-
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6">
-                <Cpu size={24} />
-              </div>
-              <h3 className="text-xl font-black text-slate-900 mb-3">
-                Automatización y Telemetría IoT
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                Integramos sensores industriales a una plataforma web para supervisar variables físicas de tu negocio en tiempo real.
-              </p>
-              <ul className="space-y-3 text-sm text-slate-700 border-t border-slate-100 pt-5 mb-6">
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-indigo-600 shrink-0" />
-                  <span>Vigilancia de temperatura en refrigeración</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-indigo-600 shrink-0" />
-                  <span>Encendido remoto de equipos e iluminación</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-indigo-600 shrink-0" />
-                  <span>Diseño de circuitos y gabinetes a medida</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-indigo-600 shrink-0" />
-                  <span>Alertas inmediatas ante fallos eléctricos</span>
-                </li>
-              </ul>
-            </div>
-            <a
-              href="#diagnostico"
-              className="text-indigo-600 font-bold text-sm hover:underline flex items-center gap-1"
-            >
-              Configurar proyecto de monitoreo <ArrowRight size={15} />
-            </a>
-          </div>
-
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center mb-6">
-                <Globe size={24} />
-              </div>
-              <h3 className="text-xl font-black text-slate-900 mb-3">
-                Desarrollo Web y Sistemas Cloud
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                Construimos aplicaciones web rápidas y personalizadas para empresas u organizaciones que requieren flujos únicos.
-              </p>
-              <ul className="space-y-3 text-sm text-slate-700 border-t border-slate-100 pt-5 mb-6">
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-slate-800 shrink-0" />
-                  <span>Plataformas interactivas para congresos y eventos</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-slate-800 shrink-0" />
-                  <span>Sistemas de administración y bases de datos</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-slate-800 shrink-0" />
-                  <span>Sitios corporativos enfocados en ventas</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={16} className="text-slate-800 shrink-0" />
-                  <span>Adaptación perfecta a teléfonos celulares</span>
-                </li>
-              </ul>
-            </div>
-            <a
-              href="#precios"
-              className="text-slate-900 font-bold text-sm hover:underline flex items-center gap-1"
-            >
-              Ver modalidad por proyecto <ArrowRight size={15} />
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* CASOS DE ÉXITO / SISTEMAS DESPLEGADOS */}
-      <section
-        id="proyectos"
-        className="scroll-mt-20 py-16 sm:py-20 px-4 sm:px-8 bg-white border-t border-slate-200"
-      >
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-blue-600">
-                Portafolio Empresarial
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-1">
-                Soluciones en operación desarrolladas por Kbto Labs
-              </h2>
-            </div>
-            <p className="text-sm text-slate-600 max-w-md">
-              Sistemas reales construidos con tecnología moderna en la nube para comercios, eventos e industria.
+            <h3 className="text-xl font-bold text-stone-950 mb-2">
+              Sistemas Punto de Venta (POS)
+            </h3>
+            <p className="text-sm text-stone-600 leading-relaxed mb-6">
+              Diseñado para que cualquier cajero o encargado cobre en segundos sin errores matemáticos al cerrar el turno.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-[#F8FAFC] border border-slate-200 rounded-3xl p-6 sm:p-8 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                    Punto de Venta
-                  </span>
-                  <Store size={22} className="text-blue-600" />
-                </div>
-                <h3 className="text-xl font-black text-slate-900 mb-2">
-                  Destellos POS & Suite Comercial
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                  Plataforma web de punto de venta con cierre de caja, generación de tickets, múltiples métodos de pago y carga de imágenes de productos en la nube.
-                </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-stone-700 border-t border-stone-200/80 pt-5 mb-6">
+              <div className="flex items-center gap-2">
+                <Check size={14} className="text-blue-600 shrink-0" />
+                <span>Cortes de caja y arqueo de efectivo</span>
               </div>
-              <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-500">
-                <span>React + Cloud Database</span>
-                <a href="#precios" className="text-blue-600 hover:underline">
-                  Ver planes compatibles
-                </a>
+              <div className="flex items-center gap-2">
+                <Check size={14} className="text-blue-600 shrink-0" />
+                <span>Pagos en efectivo, tarjeta y transferencia</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check size={14} className="text-blue-600 shrink-0" />
+                <span>Reparto automatizado de propinas por horas</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check size={14} className="text-blue-600 shrink-0" />
+                <span>Impresión de tickets térmicos de venta</span>
               </div>
             </div>
+            <button
+              onClick={() => {
+                setActiveLabTab('pos');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="text-xs font-bold text-blue-600 hover:underline inline-flex items-center gap-1"
+            >
+              Probar simulador POS arriba <ArrowUpRight size={14} />
+            </button>
+          </TiltSpotlightCard>
 
-            <div className="bg-[#F8FAFC] border border-slate-200 rounded-3xl p-6 sm:p-8 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-                    Hardware & IoT
-                  </span>
-                  <Cpu size={22} className="text-indigo-600" />
+          <TiltSpotlightCard className="lg:col-span-5 bg-white border border-stone-200/90 rounded-2xl p-6 sm:p-8 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-stone-100 text-stone-900 flex items-center justify-center mb-5">
+              <Cpu size={20} />
+            </div>
+            <h3 className="text-xl font-bold text-stone-950 mb-2">
+              Automatización y Telemetría IoT
+            </h3>
+            <p className="text-sm text-stone-600 leading-relaxed mb-6">
+              Integramos sensores industriales a una plataforma web para supervisar variables físicas de tu negocio en tiempo real.
+            </p>
+            <ul className="space-y-2.5 text-xs text-stone-700 border-t border-stone-200/80 pt-5 mb-6">
+              <li className="flex items-center gap-2">
+                <Check size={14} className="text-blue-600 shrink-0" />
+                <span>Vigilancia de temperatura en refrigeración</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Check size={14} className="text-blue-600 shrink-0" />
+                <span>Diseño de circuitos ESP32 y gabinetes 3D</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Check size={14} className="text-blue-600 shrink-0" />
+                <span>Alertas inmediatas ante fallos eléctricos</span>
+              </li>
+            </ul>
+            <button
+              onClick={() => {
+                setActiveLabTab('iot3d');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="text-xs font-bold text-blue-600 hover:underline inline-flex items-center gap-1"
+            >
+              Interactuar con el modelo 3D IoT <ArrowUpRight size={14} />
+            </button>
+          </TiltSpotlightCard>
+
+          <TiltSpotlightCard className="lg:col-span-12 bg-white border border-stone-200/90 rounded-2xl p-6 sm:p-8 shadow-sm">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+              <div className="lg:col-span-6">
+                <div className="w-10 h-10 rounded-xl bg-stone-100 text-stone-900 flex items-center justify-center mb-4">
+                  <Globe size={20} />
                 </div>
-                <h3 className="text-xl font-black text-slate-900 mb-2">
-                  Kyros — Sistema Modular IIoT
+                <h3 className="text-xl font-bold text-stone-950 mb-2">
+                  Desarrollo Web y Sistemas Cloud a Medida
                 </h3>
-                <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                  Arquitectura de monitoreo ambiental e industrial mediante microcontroladores ESP32, sensores dedicados y panel de control web en tiempo real.
+                <p className="text-sm text-stone-600 leading-relaxed">
+                  Construimos aplicaciones web rápidas y personalizadas para empresas, congresos u organizaciones que requieren flujos únicos.
                 </p>
               </div>
-              <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-500">
-                <span>Hardware Propio + Web Gateway</span>
-                <a href="#diagnostico" className="text-indigo-600 hover:underline">
-                  Cotizar implementación
-                </a>
-              </div>
-            </div>
-
-            <div className="bg-[#F8FAFC] border border-slate-200 rounded-3xl p-6 sm:p-8 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold uppercase text-slate-700 bg-slate-200/70 px-3 py-1 rounded-full">
-                    Plataformas Cloud
-                  </span>
-                  <BarChart3 size={22} className="text-slate-800" />
+              <div className="lg:col-span-6 lg:border-l border-stone-200/80 lg:pl-8 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-stone-700">
+                <div className="flex items-center gap-2">
+                  <Check size={14} className="text-blue-600 shrink-0" />
+                  <span>Plataformas interactivas para eventos</span>
                 </div>
-                <h3 className="text-xl font-black text-slate-900 mb-2">
-                  Sistemas para Eventos y Personal
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed mb-6">
-                  Galerías interactivas en tiempo real con moderación administrativa para congresos y aplicaciones web para distribución exacta de propinas y turnos.
-                </p>
-              </div>
-              <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-500">
-                <span>Next.js + Tiempo Real</span>
-                <a href="#precios" className="text-slate-900 hover:underline">
-                  Cotizar a medida
-                </a>
+                <div className="flex items-center gap-2">
+                  <Check size={14} className="text-blue-600 shrink-0" />
+                  <span>Sistemas administrativos propios</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check size={14} className="text-blue-600 shrink-0" />
+                  <span>Sitios corporativos enfocados en ventas</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check size={14} className="text-blue-600 shrink-0" />
+                  <span>Adaptación impecable a celulares</span>
+                </div>
               </div>
             </div>
-          </div>
+          </TiltSpotlightCard>
         </div>
       </section>
 
-      {/* COMPARATIVA CLARA */}
-      <section id="comparativa" className="scroll-mt-20 py-16 sm:py-20 px-4 sm:px-8 max-w-6xl mx-auto">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-2xl sm:text-4xl font-black text-slate-900">
-            Por qué actualizar la administración de tu negocio
-          </h2>
-          <p className="text-slate-600 text-sm mt-2">
-            Diferencias operativas entre llevar cuentas manuales y utilizar la infraestructura de Kbto Labs.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8">
-            <div className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-4 flex items-center gap-2">
-              <X size={18} className="text-rose-600" /> Métodos Tradicionales o Software Antiguo
-            </div>
-            <ul className="space-y-4 text-sm text-slate-600">
-              <li className="flex items-start gap-3">
-                <X size={16} className="text-rose-500 shrink-0 mt-0.5" />
-                <span>Pérdida de tiempo cuadrando efectivo, notas de papel o archivos de Excel.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <X size={16} className="text-rose-500 shrink-0 mt-0.5" />
-                <span>Licencias caras que te obligan a comprar servidores o equipos específicos.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <X size={16} className="text-rose-500 shrink-0 mt-0.5" />
-                <span>Imposibilidad de revisar las ventas del día si no estás dentro del local.</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="bg-blue-600 text-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-blue-600/20">
-            <div className="text-blue-100 font-bold text-xs uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Check size={18} className="text-white" /> Con Software de Kbto Labs
-            </div>
-            <ul className="space-y-4 text-sm text-blue-50">
-              <li className="flex items-start gap-3">
-                <Check size={16} className="text-white shrink-0 mt-0.5" />
-                <span>Cortes de caja, inventarios y reparto de propinas calculados al instante.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Check size={16} className="text-white shrink-0 mt-0.5" />
-                <span>Planes accesibles desde $299 MXN/mes usando tus dispositivos actuales.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Check size={16} className="text-white shrink-0 mt-0.5" />
-                <span>Panel en vivo desde cualquier teléfono móvil y soporte directo en tu ciudad.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
+      {/* DOCK FLOTANTE NO LINEAL (SIN ASISTENTE IA) */}
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-stone-950/90 backdrop-blur-md text-white px-3 py-2 rounded-full shadow-2xl border border-white/15 flex items-center gap-1 sm:gap-2">
+        <button
+          onClick={() => {
+            setActiveLabTab('pos');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="px-3.5 py-1.5 rounded-full text-[11px] font-medium hover:bg-white/10 transition-colors flex items-center gap-1.5"
+        >
+          <Store size={13} className="text-blue-400" />
+          Simulador POS
+        </button>
+        <button
+          onClick={() => {
+            setActiveLabTab('iot3d');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="px-3.5 py-1.5 rounded-full text-[11px] font-medium hover:bg-white/10 transition-colors flex items-center gap-1.5"
+        >
+          <Box size={13} className="text-emerald-400" />
+          Nodo 3D
+        </button>
+        <a
+          href="#precios"
+          className="px-3.5 py-1.5 rounded-full text-[11px] font-medium hover:bg-white/10 transition-colors"
+        >
+          Precios
+        </a>
+        <a
+          href="#diagnostico"
+          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-full text-[11px] font-semibold transition-colors"
+        >
+          Configurar Plan
+        </a>
+      </div>
 
       {/* FOOTER CORPORATIVO */}
-      <footer className="bg-white border-t border-slate-200 py-12 px-4 sm:px-8 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6">
+      <footer className="bg-white border-t border-stone-200/80 py-10 px-4 sm:px-8 text-xs text-stone-500">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black">
+            <div className="w-6 h-6 rounded-md bg-stone-950 flex items-center justify-center text-white font-bold text-xs">
               K
             </div>
-            <span className="font-black text-slate-900 text-sm">KBTO LABS</span>
-            <span className="text-slate-400">| Software, POS & Hardware</span>
+            <span className="font-bold text-stone-950">KBTO LABS</span>
+            <span className="text-stone-400">| Software, POS & Hardware</span>
           </div>
-
-          <div className="flex flex-wrap justify-center gap-6 font-semibold text-slate-600">
-            <a href="#soluciones" className="hover:text-blue-600">
-              Soluciones
-            </a>
-            <a href="#precios" className="hover:text-blue-600">
-              Precios
-            </a>
-            <a href="#diagnostico" className="hover:text-blue-600">
-              Diagnóstico
-            </a>
-            <a href="#proyectos" className="hover:text-blue-600">
-              Portafolio
-            </a>
-          </div>
-
-          <div className="text-center sm:text-right">
-            © 2026 Kbto Labs. Guasave, Sinaloa, México. Todos los derechos reservados.
-          </div>
+          <div>© 2026 Kbto Labs. Guasave, Sinaloa, México. Todos los derechos reservados.</div>
         </div>
       </footer>
     </main>
