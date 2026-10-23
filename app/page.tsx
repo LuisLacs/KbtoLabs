@@ -1042,7 +1042,7 @@ export default function KbtoLabsInteractive() {
                   </div>
 
                   <a
-                    href={`https://wa.me/5216870000000?text=${encodeURIComponent(
+                    href={`https://wa.me/5216878761208?text=${encodeURIComponent(
                       `Hola Kbto Labs, me interesa contratar el plan ${plan.name} (${plan.subtitle}) de $${displayedPrice} MXN.`
                     )}`}
                     target="_blank"
@@ -1180,7 +1180,7 @@ export default function KbtoLabsInteractive() {
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                   <a
-                    href={`https://wa.me/5216870000000?text=${encodeURIComponent(
+                    href={`https://wa.me/5216878761208?text=${encodeURIComponent(
                       `Hola Kbto Labs, realicé el diagnóstico en su web. Mi resultado fue: ${recommendation.name} (${recommendation.price}). Giro: ${answers.industry}, Escala: ${answers.scale}, Equipo: ${answers.hardware}.`
                     )}`}
                     target="_blank"
